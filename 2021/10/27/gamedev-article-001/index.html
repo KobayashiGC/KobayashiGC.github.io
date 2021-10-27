@@ -1,0 +1,199 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>子弹对象涉及到的设计模式 | 小林の屋</title><meta name="keywords" content="游戏开发,设计模式"><meta name="author" content="废宅小林"><meta name="copyright" content="废宅小林"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="射击这个东西，你可以用射线检测去做，也可以直接用子弹对象去做，子弹对象的话注意对象管理和物理模拟的开销。 其实很佩服日本那些做弹幕游戏的（但确实有做弹幕游戏的专门引擎），记得好像有一些上古资料专门讲弹幕的设计。在现在看来，Unity那边能用Burst+DOTS实现海量对象的操作，守望先锋那边开了这个头。 场景 游戏中，想让子弹对象对角色造成伤害。这看起来是一个很简单的逻辑，在碰撞盒的重叠事件里写入">
+<meta property="og:type" content="article">
+<meta property="og:title" content="子弹对象涉及到的设计模式">
+<meta property="og:url" content="https://kobayashigc.github.io/2021/10/27/gamedev-article-001/index.html">
+<meta property="og:site_name" content="小林の屋">
+<meta property="og:description" content="射击这个东西，你可以用射线检测去做，也可以直接用子弹对象去做，子弹对象的话注意对象管理和物理模拟的开销。 其实很佩服日本那些做弹幕游戏的（但确实有做弹幕游戏的专门引擎），记得好像有一些上古资料专门讲弹幕的设计。在现在看来，Unity那边能用Burst+DOTS实现海量对象的操作，守望先锋那边开了这个头。 场景 游戏中，想让子弹对象对角色造成伤害。这看起来是一个很简单的逻辑，在碰撞盒的重叠事件里写入">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://qiniu.sukoshi.xyz/src/images/68686407_p0.jpg">
+<meta property="article:published_time" content="2021-10-27T10:57:48.000Z">
+<meta property="article:modified_time" content="2021-10-27T10:57:48.383Z">
+<meta property="article:author" content="废宅小林">
+<meta property="article:tag" content="游戏开发">
+<meta property="article:tag" content="设计模式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://qiniu.sukoshi.xyz/src/images/68686407_p0.jpg"><link rel="shortcut icon" href="https://gitee.com/JimLiuGC/BlogResources/raw/master/images/common/favicon.ico"><link rel="canonical" href="https://kobayashigc.github.io/2021/10/27/gamedev-article-001/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery@2/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isanchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '子弹对象涉及到的设计模式',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2021-10-27 18:57:48'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 5.4.0"></head><body><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://gitee.com/JimLiuGC/BlogResources/raw/master/images/common/avatar_small.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data is-center"><div class="data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">4</div></a></div><div class="data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a></div><div class="data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-list"></i><span> 列表</span></a></div><div class="menus_item"><a class="site-page" href="/about"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://qiniu.sukoshi.xyz/src/images/68686407_p0.jpg')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">小林の屋</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives"><i class="fa-fw fas fa-list"></i><span> 列表</span></a></div><div class="menus_item"><a class="site-page" href="/about"><i class="fa-fw fas fa-heart"></i><span> 关于</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">子弹对象涉及到的设计模式</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-10-27T10:57:48.000Z" title="发表于 2021-10-27 18:57:48">2021-10-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-10-27T10:57:48.383Z" title="更新于 2021-10-27 18:57:48">2021-10-27</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="子弹对象涉及到的设计模式"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>射击这个东西，你可以用射线检测去做，也可以直接用子弹对象去做，子弹对象的话注意对象管理和物理模拟的开销。</p>
+<p>其实很佩服日本那些做弹幕游戏的（但确实有做弹幕游戏的专门引擎），记得好像有一些上古资料专门讲弹幕的设计。在现在看来，Unity那边能用Burst+DOTS实现海量对象的操作，守望先锋那边开了这个头。</p>
+<h2 id="场景">场景</h2>
+<p>游戏中，想让子弹对象对角色造成伤害。这看起来是一个很简单的逻辑，在碰撞盒的重叠事件里写入造成伤害的逻辑就行，使用UE引擎的话直接在重叠事件里调用<code>ApplyDamage</code>就行。</p>
+<p>但是！！</p>
+<p>子弹是一个对象，射击这个行为必然要使用子弹对象，那么会有下面的问题：</p>
+<ul>
+<li>每次射击就实例化一个子弹对象吗？（不行，短时间生成大量对象开销太高，射出去的子弹也会被浪费）</li>
+<li>重叠事件直接造成伤害就行吗？（可以，但以后要设计好多种子弹呢，每种子弹有不同的杀伤力呢，你的角色甚至能使用魔法呢）</li>
+<li>假设一个子弹对象引用了一个对象，而这个对象又不随时间而变化，这个对象是否可以被共用（是这样的）</li>
+</ul>
+<p>以上三个问题是我在实际开发时遇到的，因为我需要把子弹类接入到我自己写的技能系统里。（UE的GAS对一个小项目来说显得有些小题大做，就自己手撕了一个，后面可能会抽出来做一个插件）</p>
+<h2 id="分析">分析</h2>
+<p>实际上会用到四种设计模式：</p>
+<ul>
+<li>单例模式：对象池的单例化</li>
+<li>对象池模式：子弹对象的管理与复用</li>
+<li>享元模式：复用子弹对象引用的其他对象</li>
+<li>工厂模式：配合享元模式</li>
+</ul>
+<h3 id="单例模式">单例模式</h3>
+<p>这个没什么好讲的，玩过对象池的都知道。</p>
+<p>实际上我有两种对象池（<code>URPGObjectPoolComponent</code>类，UE中继承自<code>ActorComponent</code>类）分别管理两类不同的对象，然后我抽了更高一层的接口出来到<code>ARPGObjectPoolManager</code>，实际的单例是用在了<code>ARPGObjectPoolManager</code>上。</p>
+<p>充分利用UE的特性，把<code>ARPGObjectPoolManager</code>对象建在<code>GameInstance</code>里。</p>
+<h3 id="对象池模式">对象池模式</h3>
+<p>UE里用<code>TSubclassOf&lt;T&gt;</code>往对象池的蓝图类里传对象类型，那么这个对象池就维护<code>T</code>类型的对象。然后就是对象池的常规操作了。</p>
+<img  src=http://www.plantuml.com/plantuml/svg/hLFBRi8m4BpdA_O8jEG38bGff2tY08aAVC2IcDILOoF7eDBIVditZmQZEksbboJU6NjdTXpFS2COH0BB4kuvvXeBpqlhPVYKpAO78PY1T-yJ8YK4BxcIK_KQm8QUaIhsIZ9fHWGlMFbCvPL1mzDgOQ4t4CifoxcCZqmBt0zytny6S5Gygx47cJcG3rj88l34T2Vd6bmcaGFP419lNrXg4gL49uSurBEkrxO3MAyEstfBl9jSJD-HgMeZuQ7MUBAWqJUsucyi02uD7HbcMNFgm292yxwOdJ7JigXc4QyDNMGlK6BET9s0FOD6MO_5Aezk9dymhuI7gL5wr4vd28f2qJmZYqUkpG75JnUfagM1noKM3DQOtq9RM6kKvKxf0helrtbjnyezJP7f7QOCvYxxl-Zy9tbELGujaxFlkrFogYdFgDUScg0aAseyxg6wOwxuFL5vVVVvkqSJjsVzjfDp2zatnqdeRelt1G00>
+<p>实际上还会对对象和对象池加一个生命周期管理，要不然长时间不使用池子的话会一直占着内存，但这不是本文讨论的重点。</p>
+<h3 id="享元模式">享元模式</h3>
+<p>前面两种模式是开发中的常规操作，适用于开篇讲的简单逻辑。</p>
+<p>现在我有亿个需求：</p>
+<ul>
+<li><code>ARPGBullet</code>对象要挂一个<code>URPGAbilityComponent</code>；</li>
+<li><code>URPGAbilityComponent</code>要引用一个<code>ARPGAbility</code>对象。</li>
+</ul>
+<p>翻译过来，就是每个<code>ARPGBullet</code>对象都会间接引用一个<code>ARPGAbility</code>对象。在我的设定里，<code>ARPGAbility</code>对象会根据不同的职能（使用派生类）具备不同的效果。这个设计借鉴了UE的GAS，比如角色具备开枪技能，枪具备射击技能，射出来的子弹具备伤害技能。</p>
+<p>根据上面的需求，修改UML如下：</p>
+<img  src=http://www.plantuml.com/plantuml/svg/hLJRSe8m47tFL-oZqie7C8mpQ5l71uMf-W4H8aqd94w8Jcrjlxq9TsneN_e2PCzczvop2KXHnGZC6SvpUA0ubJX3A2wMk-Te4Umfe-eo5zbHSC8LVA0lA8EKv1vi0odnnG_Qr2dwh0kOwEp462ctpGLZDAU2pyIR1plzRCew6bwH_4M7Dmeh6fj53xqbubdfEUWEGZuZAUNXcKY6ZoFNTSSUd0LD2koH9nQaHpbY-49aGxmFhgEv1J5SmlqhYLKa1EkwfNiMyS9XxTVcj2-sX0U_jMUg1PgDFJzBoAcn3Nqd7b2kTCaWISggequYbEzMx8AeAal7EebzGItj5UOu9RAOLTU3ajc0H3ERnfC_Cdl4WrW9wLJkZ47eeKYQQ8bdAjK9ivygOi5p1Kzhd17OulGUgi1MOfuVXCoW-RBLgpeQzTf58Wyu9h2qoV-5vp_HixAoSF6lhckV4Z8kBtIlfMw2kPOY9fE1LFkOJVx0gD3GUQvxbED6dGlkNokeUtAi2SrfGLsuPdDxev7rBrJpg03q3G00>
+<p>问题来了，我池子里有一大坨<code>ARPGBullet</code>对象，他们的<code>ARPGAbility</code>从需求上来看应该是一样的，也就是说，我这一大坨子弹对象可以共同引用同一个<code>ARPGAbility</code>对象。</p>
+<p>也就是，这里用到了享元模式，必然的，也会用到工厂模式，维护一个哈希表，如果该<code>ARPGAbility</code>对象可以被复用，就先查表，表里没有就<code>spawn</code>一个然后注册到哈希表里；若<code>ARPGAbility</code>对象不能被复用，就直接走工厂方法拿一个对象出来。</p>
+<p>定义一个<code>ARPGAbilityFactory</code>类，游戏中所有的<code>ARPGAbility</code>对象都由这个工厂类获得：</p>
+<img  src=http://www.plantuml.com/plantuml/svg/AyaioKbLS0mAS7TCoip9BAbqIqmkoI-gLD1LSCv9B2vMSCbCJ2zApENYIWPpiQYivgfJ24ejBKvCoac5I6Mc5bifXFWc5jYu-INcfkeWwzAouz9MS2vAJIo1AgxK20akJGARxfzcWwJIJW7A03j4Hm5i5ami935TmLP1IKdJ2iLme5CWPWTdvgNda6O3BgDG_KQUSq5iTFDhkG00>
+<p>暴露出来的<code>CreateAbility</code>方法的第二个参数，若为空则生成不复用的<code>ARPGAbility</code>对象，否则以这个参数作为哈希表的键，再从哈希表里拿对象。</p>
+<p>项目中我已经实现从蓝图中配置某个类的<code>URPGAbilityComponent</code>注册了哪些<code>ARPGAbility</code>对象（实际上是在蓝图里注册<code>TSubclassOf&lt;ARPGAbility&gt;</code>），最开始是直接在<code>URPGAbilityComponent</code>的<code>BeginPlay</code>里生成：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">URPGAbilityComponent::BeginPlay</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Super::<span class="built_in">BeginPlay</span>();</span><br><span class="line">    <span class="keyword">for</span> (TSubclassOf&lt;ARPGAbility&gt; AbiliyClass: AbilitiesClass)</span><br><span class="line">    &#123;</span><br><span class="line">        ARPGAbility* Ability = Cast&lt;ARPGAbility&gt;(<span class="built_in">GetWorld</span>()-&gt;<span class="built_in">SpawnActor</span>(AbilityClass));</span><br><span class="line">        Abilities.<span class="built_in">Push</span>(Ability); <span class="comment">// Abilities是这个Component维护的技能列表，该Component又会被子弹挂载，即子弹具有Abilities里的技能</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>现在可以通过工厂方法获取，并可以决定需要的<code>ARPGAbility</code>对象是否复用：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">URPGAbilityComponent::BeginPlay</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    Super::<span class="built_in">BeginPlay</span>();</span><br><span class="line">    <span class="keyword">for</span> (TSubclassOf&lt;ARPGAbility&gt; AbiliyClass: AbilitiesClass)</span><br><span class="line">    &#123;</span><br><span class="line">        ARPGAbilityFactory* AbilityFactory = Cast&lt;URPGGameInstance&gt;(<span class="built_in">GetWorld</span>()-&gt;<span class="built_in">GetGameInstance</span>())-&gt;<span class="built_in">GetAbilityFactory</span>();</span><br><span class="line">        ARPGAbility* Ability = AbilityFactory-&gt;<span class="built_in">CreateAbility</span>(AbilityClass, <span class="built_in">FName</span>(AbilityClass.<span class="built_in">GetDefaultObject</span>()-&gt;AbilityTag));</span><br><span class="line">        Abilities.<span class="built_in">Push</span>(Ability); <span class="comment">// Abilities是这个Component维护的技能列表，该Component又会被子弹挂载，即子弹具有Abilities里的技能</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="总结">总结</h2>
+<ul>
+<li>操作对象池时小心内存管理；</li>
+<li>设计模式要根据需求灵活运用；</li>
+<li>拿出三分之一的时间思考和设计，三分之一的时间写代码，剩下三分之一的时间用于验证和复盘。</li>
+</ul>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">废宅小林</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://kobayashigc.github.io/2021/10/27/gamedev-article-001/">https://kobayashigc.github.io/2021/10/27/gamedev-article-001/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://kobayashigc.github.io" target="_blank">小林の屋</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91/">游戏开发</a><a class="post-meta__tags" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2021/10/25/NHK211025/"><img class="next-cover" src="https://qiniu.sukoshi.xyz/src/images/68686407_p0.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">2021/10 NHK听力汇总</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://gitee.com/JimLiuGC/BlogResources/raw/master/images/common/avatar_small.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">废宅小林</div><div class="author-info__description">御宅族 程序员 咖啡玩家</div></div><div class="card-info-data is-center"><div class="card-info-data-item"><a href="/archives/"><div class="headline">文章</div><div class="length-num">4</div></a></div><div class="card-info-data-item"><a href="/tags/"><div class="headline">标签</div><div class="length-num">8</div></a></div><div class="card-info-data-item"><a href="/categories/"><div class="headline">分类</div><div class="length-num">3</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/KobayashiGC"><i class="fab fa-github"></i><span>找我</span></a></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9C%BA%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">场景</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%86%E6%9E%90"><span class="toc-number">2.</span> <span class="toc-text">分析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.1.</span> <span class="toc-text">单例模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AF%B9%E8%B1%A1%E6%B1%A0%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.2.</span> <span class="toc-text">对象池模式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">享元模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li></ol></div></div></div></div></main><footer id="footer" style="background: #ffffff"><div id="footer-wrap"><div class="copyright">&copy;2021 By 废宅小林</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
